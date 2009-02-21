@@ -1,0 +1,317 @@
+ <html>                                                                  
+ <head>                                                                  
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <script type="text/javascript" src="scripts/jquery.js"></script>          
+ <script type="text/javascript">                                         
+
+ //--------------------------------------------------------------
+ // settings for this slide
+ //   wiki_url: source wiki document
+ //   attachment_url: 
+ //--------------------------------------------------------------
+ // URLs must be same host as this html file.
+ // Indirect format ("../../ ...") is recomended.
+ //--------------------------------------------------------------
+ var settings = {
+     "wiki_url": "../../wiki/AgileEstimatingAndPlanning?format=txt",
+     "attachment_url": "../../raw-attachment/wiki/AgileEstimatingAndPlanning"
+ }
+
+ //--------------------------------------------------------------
+ // presantation: Presentation Object
+ //--------------------------------------------------------------
+ var presentation = function () {
+     this.pages = [];
+     this.pages_size = 0;
+     this.pages_pointer = 0;
+     
+     this.get_first_page = function () {
+	 this.pages_pointer = 0;
+	 return this.get_page(this.pages_pointer);
+     }
+     
+     this.get_prev_page = function () {
+	 if ( this.pages_pointer > 0 ) {
+	     this.pages_pointer = this.pages_pointer - 1;
+	 }
+	 return this.get_page(this.pages_pointer);
+     }
+     
+     this.get_next_page = function () {
+	 if ( this.pages_pointer < this.pages_size - 1 ) {
+	     this.pages_pointer = this.pages_pointer + 1;
+	 }
+	 return this.get_page(this.pages_pointer);
+     }
+     
+     this.get_last_page = function () {
+	 this.pages_pointer = this.pages_size - 1;
+	 return this.get_page(this.pages_pointer);
+     }
+     
+     
+     this.get_page = function (i) {
+	 return this.pages[i];
+     }
+     
+     this.dump = function () {
+	 var r = [];
+	 for ( var i = 0; i < this.pages_size; i++ ) {
+	     r[i] = i + ":" + this.pages[i].join("|");
+	 }
+	 return r.join("\n");
+     }
+     
+     this.page_buffer = [];
+     this.page_buffer_size = 0;
+     this.page_buffer_type = "";
+     this.add_page = function (page_type, page) {
+	 switch (page_type) {
+ 	 case "header": //Header Style Page
+ 	     this.pages[this.pages_size] = [page_type, page];
+	     this.pages_size = this.pages_size + 1;
+	     break;
+ 	 case "normal": //Standard Style Page
+ 	     this.pages[this.pages_size] = [page_type, page];
+	     this.pages_size = this.pages_size + 1;
+	     break;
+	 case "quoted": //Quoted-String Style Page
+ 	     this.pages[this.pages_size] = [page_type, page];
+	     this.pages_size = this.pages_size + 1;
+	     break;
+	 case "picture": //Image Style Page
+ 	     this.pages[this.pages_size] = [page_type, page];
+	     this.pages_size = this.pages_size + 1;
+	     break;
+	 }
+     }
+     
+     this.add_page_line = function (page_type, line_index, page_line) {
+	 //window.console.log(line_index + ":" + page_type + ":" + page_line);
+	 
+	 var page_buffer_type = this.page_buffer_type;
+	 switch (page_type) {
+ 	 case "header": //Header Style Page (isolated)
+ 	 case "picture": //Image Style Page
+	     if ( this.page_buffer_size > 0 ) {
+		 // Flush (previous) page buffer
+		 this.add_page(page_buffer_type, this.page_buffer );
+		 // Initialize page buffer
+		 this.page_buffer_size = 0;
+		 this.page_buffer_type = "";
+		 this.page_buffer = [];
+	     }
+	     // Add page 
+	     this.add_page(page_type, [page_line] );
+	     break;
+ 	 case "normal-title":
+	     // Flush (previous) page buffer
+	     this.add_page(page_buffer_type, this.page_buffer );
+	     // Initialize page buffer with this line
+	     // ( Standard Style Page )
+	     this.page_buffer_size = 1;
+	     this.page_buffer_type = "normal";
+	     this.page_buffer = [page_line];
+	     break;
+ 	 case "normal":
+	     switch (page_buffer_type) {
+ 	     case "normal": 
+		 // push into page buffer
+		 this.page_buffer[this.page_buffer_size] = page_line;
+		 this.page_buffer_size = this.page_buffer_size + 1;
+		 break;
+	     case "quoted":
+		 // Add page
+		 this.add_page(page_buffer_type, this.page_buffer );
+	     case "":
+		 // Initialize page buffer with this line
+		 this.page_buffer_size = 1;
+		 this.page_buffer_type = page_type;
+		 this.page_buffer = [page_line];
+		 break;
+	     }
+	     break;
+	 case "quoted":
+	     switch (page_buffer_type) {
+ 	     case "normal":
+		 // Add page 
+		 this.add_page(page_buffer_type, this.page_buffer );
+	     case "":
+		 // Initialize page buffer with this line
+		 this.page_buffer_size = 1;
+		 this.page_buffer_type = page_type;
+		 this.page_buffer = [page_line];
+		 break;
+	     case "quoted":
+		 // push into page buffer
+		 this.page_buffer[this.page_buffer_size] = page_line;
+		 this.page_buffer_size = this.page_buffer_size + 1;
+		 break;
+	     }
+	     break;
+	 }
+     }
+ };
+ // create presentation object
+ var p10n = new presentation();
+
+
+ //-------------------------------------------------------------- 
+ // navigation_button: UI Operations
+ //-------------------------------------------------------------- 
+ var navigation_button = function () {
+     
+     this.first = function() {
+	 var p = p10n.get_first_page();
+	 this.show_page(p);
+     }
+     this.prev = function() {
+	 var p = p10n.get_prev_page();
+	 this.show_page(p);
+     }
+     this.next = function() {
+	 var p = p10n.get_next_page();
+	 this.show_page(p);
+     }
+     this.last = function() {
+	 var p = p10n.get_last_page();
+	 this.show_page(p);
+     }
+     
+     this.show_page = function (p) {
+	 switch ( p[0] ) {
+	 case "header":
+	     $('#p10n-header').text(p[1].join("\n"));
+	     $('#p10n-header').show();
+	     $('#p10n-normal').hide();
+	     $('#p10n-quoted').hide();
+	     $('#p10n-picture').hide();
+	     break;
+	     
+	 case "normal":
+	     $('#p10n-normal').html("<code>" + jQuery.map(p[1], function(s) { return s.replace(/ /g, "&nbsp;"); }).join("<br \>\n") + "</code>");		
+	     $('#p10n-header').hide();
+	     $('#p10n-normal').show();
+	     $('#p10n-quoted').hide();
+	     $('#p10n-picture').hide();
+	     break;
+	     
+	 case "quoted":
+	     $('#p10n-quoted').html(p[1].join("<br />\n"));
+	     $('#p10n-header').hide();
+	     $('#p10n-normal').hide();
+	     $('#p10n-quoted').show();
+	     $('#p10n-picture').hide();
+	     break;
+	     
+	 case "picture":
+	     $('#p10n-picture').html('<center><img src="' + settings.attachment_url + '/' + p[1] + '" /></center>');
+	     $('#p10n-header').hide();
+	     $('#p10n-normal').hide();
+	     $('#p10n-quoted').hide();
+	     $('#p10n-picture').show();
+	     break;
+	 }
+     }
+ }
+ // create UI Operations Object
+ var nvgn_btn = new navigation_button();
+ 
+ //-------------------------------------------------------------- 
+ // jQuery.ready: 
+ //-------------------------------------------------------------- 
+ // Aquire wiki data, add to presentation
+ //-------------------------------------------------------------- 
+ $(document).ready(function() {
+     $.get( settings.wiki_url, function(data){
+	 var data_array = data.split("\n");
+ 	 jQuery.each(data_array, function(index, s) {
+ 	     // Heading and Subheading
+ 	     if ( s.match(/^[ \t]*\=/) ) {
+		 s = s.replace(/^[ \t\=]+/, "");
+		 s = s.replace(/[ \t\r\n\=]+$/, "");
+ 		 p10n.add_page_line("header", index, s);
+ 		 return;
+ 	     }
+ 	     // Horizontal line
+	     //  omitted
+ 	     if ( s.match(/^[ \t]*[\-]{4}/) ) {
+ 		 //p10n.add_page_line("header", index, s);
+ 		 return;
+ 	     }
+  	     // Lists - level 1
+  	     if ( s.match(/^[ \t]{1}\*/) ) {
+  		 p10n.add_page_line("normal-title", index, s);
+  		 return;
+  	     }
+  	     // Lists - level2+
+	     //   locate under previous list
+  	     if ( s.match(/^[ \t]+\*/) ) {
+  		 p10n.add_page_line("normal", index, s);
+  		 return;
+  	     }
+	     // Discussion Citations
+ 	     if ( s.match(/^\>/) ) {
+		 s = s.replace(/^\>+/, "");
+ 		 p10n.add_page_line("quoted", index, s);
+ 		 return;
+	     }
+	     // Inline Image (macro)
+ 	     if ( s.match(/^\[\[Image\((.*)\)\]\]/) ) {
+ 		 p10n.add_page_line("picture", index, RegExp.$1);
+ 		 return;
+	     }
+ 	 });
+	 //window.console.log(p10n.dump());
+	 
+	 // show first page
+	 nvgn_btn.first();
+	 
+     });
+     
+     // key press event
+     $("body").keypress(function (e) {
+	 //window.console.log(e.which);
+	 switch (e.which) {
+	 case 104: //h
+	     //nvgn_btn.first();
+	     break;
+	 case 106: //j
+	     nvgn_btn.prev();
+	     break;
+	 case 107: //k
+	     nvgn_btn.next();
+	     break;
+	 case 108: //l
+	     //nvgn_btn.last();
+	     break;
+	 }
+     });
+ });    
+
+ </script>                                                               
+ </head>                                                                 
+ <body style="background-color: black; color: white;">
+    <!-- Operation Buttons -->
+    <input type="button" value="|<" onclick="nvgn_btn.first();" />
+    <input type="button" value="<" onclick="nvgn_btn.prev();" />
+    <input type="button" value=">" onclick="nvgn_btn.next();" />
+    <input type="button" value=">|" onclick="nvgn_btn.last();" />
+
+    <!-- Presentation Screens by page type -->
+
+    <!-- Header Style Page -->
+    <div id="p10n-header" style="display:none; padding-top: 4em; margin-left:2em; font-size: xx-large; border-bottom:Solid 1px Silver;"></div>
+
+    <!-- Standard Style Page -->
+    <div id="p10n-normal" style="display:none; padding-top: 1em; font-size: large;"></div>
+    
+    <!-- Quoted-String Style Page -->
+    <div id="p10n-quoted" style="display:none; margin-top:0.2em; padding: 0.5em; border-top: Solid 0.5em Silver; border-bottom: Solid 0.5em Silver; background-color: white; color: Black; font-size: xx-large; width:100%;"></div>
+
+    <!-- Image Style Page -->
+    <div id="p10n-picture" style="display:none; padding-top: 1em; font-size: large;"></div>
+
+
+ </body>                                                                 
+ </html>

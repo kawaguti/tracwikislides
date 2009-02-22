@@ -268,26 +268,21 @@
 	 nvgn_btn.first();
 	 
      });
-     
-     // key press event
-     $("body").keypress(function (e) {
-	 //window.console.log(e.which);
-	 switch (e.which) {
-	 case 104: //h
-	     //nvgn_btn.first();
-	     break;
-	 case 106: //j
-	     nvgn_btn.prev();
-	     break;
-	 case 107: //k
-	     nvgn_btn.next();
-	     break;
-	 case 108: //l
-	     //nvgn_btn.last();
-	     break;
-	 }
-     });
  });    
+
+ // key down event
+ $(document).keydown (function(e) {
+     //window.console.log(e.keyCode);
+     switch (e.keyCode) {
+     case 74: //j
+	 nvgn_btn.prev();
+	 break;
+     case 75: //k
+	 nvgn_btn.next();
+	 break;
+     }
+ });
+
 
  </script>                                                               
  </head>                                                                 

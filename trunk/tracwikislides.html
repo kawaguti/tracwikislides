@@ -332,15 +332,18 @@
  <body style="background-color: black; color: white;">
     <!-- Operation Buttons -->
     <div id="nvgn_btns">
-      <!-- input form -->
-      <form onsubmit="show_slides($('#url').val()); return false;">
+    <div style="width: 100em; ">
+        <!-- input form -->
+        <form onsubmit="show_slides($('#url').val()); return false;">
     wikiname: <input id="url" type="input" value="" size="60" style="background-color:Silver;" />
-        <input type="submit" value="show slides"/>
-      <input type="button" value="|<" onclick="nvgn_btn.first();" />
-      <input type="button" value="<" onclick="nvgn_btn.prev();" />
-      <input type="button" value=">" onclick="nvgn_btn.next();" />
-      <input type="button" value=">|" onclick="nvgn_btn.last();" />
-      <input type="button" value="Hide menu" onclick="nvgn_btn.toggle();" />      </form>
+          <input type="submit" value="show slides"/>
+          <input type="button" value="|<" onclick="nvgn_btn.first();" />
+          <input type="button" value="<" onclick="nvgn_btn.prev();" />
+          <input type="button" value=">" onclick="nvgn_btn.next();" />
+          <input type="button" value=">|" onclick="nvgn_btn.last();" />
+          <input type="button" value="Hide menu" onclick="nvgn_btn.toggle();" />
+        </form>
+      </div>
     </div>
 
     <!-- Presentation Screens by page type -->

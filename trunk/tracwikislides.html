@@ -10,15 +10,12 @@
 
  //--------------------------------------------------------------
  // settings for this slide
- //   wiki_url: source wiki document
- //   attachment_url: 
- //--------------------------------------------------------------
- // URLs must be same host as this html file.
- // Indirect format ("../../ ...") is recomended.
+ //   wiki_url: source wiki document path
+ //   attachment_url: attachment image file path
  //--------------------------------------------------------------
  var settings = {
-     "wiki_url": "../../wiki/TestSlide?format=txt",
-     "attachment_url": "../../raw-attachment/wiki/TestSlide"
+     "wiki_url": "",
+     "attachment_url": ""
  }
 
  //--------------------------------------------------------------
@@ -217,16 +214,26 @@
 	     break;
 	 }
      }
+ 
+     this.toggle = function () {
+	 $('#nvgn_btns').toggle(600);
+     }
+
  }
- // create UI Operations Object
+ // create navigation button Object
  var nvgn_btn = new navigation_button();
  
  //-------------------------------------------------------------- 
- // jQuery.ready: 
+ // show_slides: 
  //-------------------------------------------------------------- 
- // Aquire wiki data, add to presentation
+ // Aquire wiki data, convert to slides, and show them.
  //-------------------------------------------------------------- 
- $(document).ready(function() {
+ function show_slides (wikiname) {
+     $('#url').blur();
+     settings.wiki_url = "../../wiki/" + wikiname + "?format=txt";
+     settings.attachment_url = "../../raw-attachment/wiki/" + wikiname;
+     p10n = new presentation();
+
      $.get( settings.wiki_url, function(data){
 	 var data_array = data.split("\n");
  	 jQuery.each(data_array, function(index, s) {
@@ -272,9 +279,30 @@
 	 nvgn_btn.first();
 	 
      });
+ }
+
+ //-------------------------------------------------------------- 
+ // jQuery.ready: 
+ //-------------------------------------------------------------- 
+ // URL argument => wikiname
+ //-------------------------------------------------------------- 
+ $(document).ready(function() {
+     var url = document.location.href;
+     if ( url.match(/\?(.+)$/)) {
+	 // URL has an argument
+	 var wiki_name = RegExp.$1;
+	 $('#url').val(wiki_name);
+	 show_slides(wiki_name);
+     } else {
+	 // URL has no arguments
+	 // set focus to url input field
+	 $('#url').focus();
+     }
  });    
 
+ //-------------------------------------------------------------- 
  // key down event
+ //-------------------------------------------------------------- 
  $(document).keydown (function(e) {
      //window.console.log(e.keyCode);
      switch (e.keyCode) {
@@ -292,23 +320,30 @@
      case 38: // up arrow key
      case 75: // k key
 	 nvgn_btn.prev();
-
+	 break;
+     case 77: // m key
+	 nvgn_btn.toggle();
 	 break;
      }
  });
-
 
  </script>                                                               
  </head>                                                                 
  <body style="background-color: black; color: white;">
     <!-- Operation Buttons -->
-    <input type="button" value="|<" onclick="nvgn_btn.first();" />
-    <input type="button" value="<" onclick="nvgn_btn.prev();" />
-    <input type="button" value=">" onclick="nvgn_btn.next();" />
-    <input type="button" value=">|" onclick="nvgn_btn.last();" />
+    <div id="nvgn_btns">
+      <!-- input form -->
+      <form onsubmit="show_slides($('#url').val()); return false;">
+    wikiname: <input id="url" type="input" value="" size="60" style="background-color:Silver;" />
+        <input type="submit" value="show slides"/>
+      <input type="button" value="|<" onclick="nvgn_btn.first();" />
+      <input type="button" value="<" onclick="nvgn_btn.prev();" />
+      <input type="button" value=">" onclick="nvgn_btn.next();" />
+      <input type="button" value=">|" onclick="nvgn_btn.last();" />
+      <input type="button" value="Hide menu" onclick="nvgn_btn.toggle();" />      </form>
+    </div>
 
     <!-- Presentation Screens by page type -->
-
     <!-- Header Style Page -->
     <div id="p10n-header" style="display:none; padding-top: 4em; margin-left:2em; font-size: xx-large; border-bottom:Solid 1px Silver;"></div>
 
@@ -320,7 +355,6 @@
 
     <!-- Image Style Page -->
     <div id="p10n-picture" style="display:none; padding-top: 1em; font-size: large;"></div>
-
 
  </body>                                                                 
  </html>

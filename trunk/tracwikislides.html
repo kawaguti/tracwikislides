@@ -90,69 +90,47 @@
 	     break;
 	 }
      }
-     
+
+     this.flush_page_buffer = function() {
+	 if ( this.page_buffer_size > 0 ) {
+	     // Flush (previous) page buffer
+	     this.add_page(this.page_buffer_type, this.page_buffer );
+	     // Initialize page buffer
+	     this.page_buffer_size = 0;
+	     this.page_buffer_type = "";
+	     this.page_buffer = [];
+	 }
+     }
+
+     this.add_page_buffer = function(buffer_type, page_line) {
+	 if ( this.page_buffer_type != buffer_type ) {
+	     this.flush_page_buffer();
+	 }
+	 this.page_buffer_type = buffer_type;
+	 this.page_buffer[this.page_buffer_size] = page_line;
+	 this.page_buffer_size = this.page_buffer_size + 1;
+
+     }
+
      this.add_page_line = function (page_type, line_index, page_line) {
 	 //window.console.log(line_index + ":" + page_type + ":" + page_line);
 	 
-	 var page_buffer_type = this.page_buffer_type;
 	 switch (page_type) {
+	 case "split":
+	     this.flush_page_buffer();
+	     break;
  	 case "header": //Header Style Page (isolated)
  	 case "picture": //Image Style Page
-	     if ( this.page_buffer_size > 0 ) {
-		 // Flush (previous) page buffer
-		 this.add_page(page_buffer_type, this.page_buffer );
-		 // Initialize page buffer
-		 this.page_buffer_size = 0;
-		 this.page_buffer_type = "";
-		 this.page_buffer = [];
-	     }
-	     // Add page 
+	     this.flush_page_buffer();
 	     this.add_page(page_type, [page_line] );
 	     break;
  	 case "normal-title":
-	     // Flush (previous) page buffer
-	     this.add_page(page_buffer_type, this.page_buffer );
-	     // Initialize page buffer with this line
-	     // ( Standard Style Page )
-	     this.page_buffer_size = 1;
-	     this.page_buffer_type = "normal";
-	     this.page_buffer = [page_line];
+	     this.flush_page_buffer();
+	     this.add_page_buffer("normal", page_line);
 	     break;
  	 case "normal":
-	     switch (page_buffer_type) {
- 	     case "normal": 
-		 // push into page buffer
-		 this.page_buffer[this.page_buffer_size] = page_line;
-		 this.page_buffer_size = this.page_buffer_size + 1;
-		 break;
-	     case "quoted":
-		 // Add page
-		 this.add_page(page_buffer_type, this.page_buffer );
-	     case "":
-		 // Initialize page buffer with this line
-		 this.page_buffer_size = 1;
-		 this.page_buffer_type = page_type;
-		 this.page_buffer = [page_line];
-		 break;
-	     }
-	     break;
 	 case "quoted":
-	     switch (page_buffer_type) {
- 	     case "normal":
-		 // Add page 
-		 this.add_page(page_buffer_type, this.page_buffer );
-	     case "":
-		 // Initialize page buffer with this line
-		 this.page_buffer_size = 1;
-		 this.page_buffer_type = page_type;
-		 this.page_buffer = [page_line];
-		 break;
-	     case "quoted":
-		 // push into page buffer
-		 this.page_buffer[this.page_buffer_size] = page_line;
-		 this.page_buffer_size = this.page_buffer_size + 1;
-		 break;
-	     }
+	     this.add_page_buffer(page_type, page_line);
 	     break;
 	 }
      }
@@ -306,9 +284,9 @@
  		 return;
  	     }
  	     // Horizontal line
-	     //  omitted
+	     // => split pages
  	     if ( s.match(/^\s*[\-]{4}/) ) {
- 		 //p10n.add_page_line("header", index, s);
+ 		 p10n.add_page_line("split", index );
  		 return;
  	     }
   	     // List - level 1

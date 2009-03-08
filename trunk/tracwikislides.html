@@ -67,34 +67,35 @@
 	 return r.join("\n");
      }
      
-     this.page_buffer = [];
-     this.page_buffer_size = 0;
-     this.page_buffer_type = "";
      this.add_page = function (page_type, page) {
 	 switch (page_type) {
  	 case "header": //Header Style Page
- 	     this.pages[this.pages_size] = [page_type, page];
-	     this.pages_size = this.pages_size + 1;
-	     break;
  	 case "normal": //Standard Style Page
- 	     this.pages[this.pages_size] = [page_type, page];
-	     this.pages_size = this.pages_size + 1;
-	     break;
 	 case "quoted": //Quoted-String Style Page
- 	     this.pages[this.pages_size] = [page_type, page];
-	     this.pages_size = this.pages_size + 1;
-	     break;
 	 case "picture": //Image Style Page
+	 case "code": //Code Style Page
  	     this.pages[this.pages_size] = [page_type, page];
 	     this.pages_size = this.pages_size + 1;
 	     break;
 	 }
      }
+ };
+ // create presentation object
+ var p10n = new presentation();
+
+ //-------------------------------------------------------------- 
+ // ParseTracWiki
+ //-------------------------------------------------------------- 
+ var ParseTracWiki = function () {
+
+     this.page_buffer = [];
+     this.page_buffer_size = 0;
+     this.page_buffer_type = "";
 
      this.flush_page_buffer = function() {
 	 if ( this.page_buffer_size > 0 ) {
 	     // Flush (previous) page buffer
-	     this.add_page(this.page_buffer_type, this.page_buffer );
+	     p10n.add_page(this.page_buffer_type, this.page_buffer );
 	     // Initialize page buffer
 	     this.page_buffer_size = 0;
 	     this.page_buffer_type = "";
@@ -122,7 +123,7 @@
  	 case "header": //Header Style Page (isolated)
  	 case "picture": //Image Style Page
 	     this.flush_page_buffer();
-	     this.add_page(page_type, [page_line] );
+	     p10n.add_page(page_type, [page_line] );
 	     break;
  	 case "normal-title":
 	     this.flush_page_buffer();
@@ -130,13 +131,109 @@
 	     break;
  	 case "normal":
 	 case "quoted":
+ 	 case "code":
 	     this.add_page_buffer(page_type, page_line);
 	     break;
 	 }
      }
- };
- // create presentation object
- var p10n = new presentation();
+
+     this.parse_trac_wiki = function (wiki_text) {
+	 var wiki_text_array = wiki_text.split("\n");
+	 var wiki_text_array_btm = wiki_text_array.length;
+	 var s = "";
+	 var is_code_block = false;
+
+ 	 for ( var index = 0; index < wiki_text_array_btm; index++ ) { 
+	     s = wiki_text_array[index];
+
+	     //----------------------
+	     // inline rules
+	     //----------------------
+	     // - bold italic
+	     s = s.replace(/\'{5}(.*)\'{5}/, "<b><i>$1</i></b>");
+	     // - bold
+	     s = s.replace(/\'{3}(.*)\'{3}/, "<b>$1</b>");
+	     // - italic
+	     s = s.replace(/\'{2}(.*)\'{2}/, "<i>$1</i>");
+	     // - undeline
+	     s = s.replace(/_{2}(.*)_{2}/, "<u>$1</u>");
+	     // - strike
+	     s = s.replace(/~{2}(.*)~{2}/, "<strike>$1</strike>");
+	     // - subscript
+	     s = s.replace(/\,{2}(.*)\,{2}/, "<sub>$1</sub>");
+	     // - superscript
+	     s = s.replace(/\^(.*)\^/, "<sup>$1</sup>");
+	     // - inline code
+	     s = s.replace(/\{{3}(.*)\}{3}/, "<code>$1</code>");
+	     // - inline code2
+	     s = s.replace(/\`(.*)\`/, "<Code>$1</code>");
+	     
+	     //----------------------
+	     // block rules
+	     //----------------------
+	     // code blocks
+  	     if ( s.match(/^\s*\}\}\}/) ) {
+		 is_code_block = false;
+  		 continue;
+  	     }
+	     if ( is_code_block ) {
+		 this.add_page_line("code", index, s);
+		 continue;
+	     }
+  	     if ( s.match(/^\s*\{\{\{/) ) {
+		 is_code_block = true;
+  		 continue;
+  	     }
+ 	     // Heading and Subheading
+ 	     if ( s.match(/^\s*\={1,3}\s*([^\=]+)\s*\={1,3}\s*/) ) {
+		 s = RegExp.$1;
+ 		 this.add_page_line("header", index, s);
+ 		 continue;
+ 	     }
+
+ 	     // Blank line
+	     // => split pages
+ 	     if ( s.match(/^\s*$/) ) {
+ 		 this.add_page_line("split", index );
+ 		 continue;
+ 	     }
+
+ 	     // Horizontal line
+	     // => split pages
+ 	     if ( s.match(/^\s*[\-]{4}/) ) {
+ 		 this.add_page_line("split", index );
+ 		 continue;
+ 	     }
+  	     // List - level 1
+  	     if ( s.match(/^\s{0,1}\*/) ) {
+  		 this.add_page_line("normal-title", index, s);
+ 		 continue;
+  	     }
+  	     // List - level2+
+	     //   locate under previous list
+  	     if ( s.match(/^\s+\*/) ) {
+  		 this.add_page_line("normal", index, s);
+  		 continue;
+  	     }
+
+	     // Discussion Citations
+ 	     if ( s.match(/^\>/) ) {
+		 s = s.replace(/^\>+/, "");
+ 		 this.add_page_line("quoted", index, s);
+  		 continue;
+	     }
+	     // Inline Image (macro)
+ 	     if ( s.match(/^\[\[Image\((.*)\)\]\]/) ) {
+ 		 this.add_page_line("picture", index, RegExp.$1);
+  		 continue;
+	     }
+
+	     // Under construction
+	     this.add_page_line("quoted", index, s);
+	 }
+     }
+ }
+ var parse_trac_wiki = new ParseTracWiki();
 
 
  //-------------------------------------------------------------- 
@@ -179,6 +276,12 @@
 	     $(tag).html("<code>" + jQuery.map(p[1], function(s) { return s.replace(/ /g, "&nbsp;"); }).join("<br \>\n") + "</code>");
 	     this.show_this_tag_and_hide_others(tag);
 	     break;
+
+	 case "code":
+	     var tag = '#p10n-code';
+	     $(tag).html("<pre>" + p[1].join("\n") + "</pre>");
+	     this.show_this_tag_and_hide_others(tag);
+	     break;
 	     
 	 case "quoted":
 	     var tag = '#p10n-quoted';
@@ -204,6 +307,7 @@
 	 var tagnames = [
 	     '#p10n-header',
 	     '#p10n-normal',
+	     '#p10n-code',
 	     '#p10n-quoted',
 	     '#p10n-picture',
 	     '#p10n-iframe'
@@ -248,72 +352,10 @@
      settings.attachment_url = "../../raw-attachment/wiki/" + wikiname;
      p10n = new presentation();
 
-     $.get( settings.text_url, function(data){
-	 var data_array = data.split("\n");
- 	 jQuery.each(data_array, function(index, s) {
+     $.get( settings.text_url, function(wiki_text){
+	 //parse
+	 parse_trac_wiki.parse_trac_wiki(wiki_text);
 
-	     //----------------------
-	     // inline rules
-	     //----------------------
-	     // - bold italic
-	     s = s.replace(/\'{5}(.*)\'{5}/, "<b><i>$1</i></b>");
-	     // - bold
-	     s = s.replace(/\'{3}(.*)\'{3}/, "<b>$1</b>");
-　	     // - italic
-	     s = s.replace(/\'{2}(.*)\'{2}/, "<i>$1</i>");
-　	     // - undeline
-	     s = s.replace(/_{2}(.*)_{2}/, "<u>$1</u>");
-　	     // - strike
-	     s = s.replace(/~{2}(.*)~{2}/, "<strike>$1</strike>");
-	     // - subscript
-	     s = s.replace(/\,{2}(.*)\,{2}/, "<sub>$1</sub>");
-	     // - superscript
-	     s = s.replace(/\^(.*)\^/, "<sup>$1</sup>");
-	     // - inline code
-	     s = s.replace(/\{{3}(.*)\}{3}/, "<code>$1</code>");
-	     // - inline code2
-	     s = s.replace(/\`(.*)\`/, "<Code>$1</code>");
-
-	     //----------------------
-	     // block rules
-	     //----------------------
- 	     // Heading and Subheading
- 	     if ( s.match(/^\s*\={1,3}\s*([^\=]+)\s*\={1,3}\s*/) ) {
-		 s = RegExp.$1;
- 		 p10n.add_page_line("header", index, s);
- 		 return;
- 	     }
- 	     // Horizontal line
-	     // => split pages
- 	     if ( s.match(/^\s*[\-]{4}/) ) {
- 		 p10n.add_page_line("split", index );
- 		 return;
- 	     }
-  	     // List - level 1
-  	     if ( s.match(/^\s{0,1}\*/) ) {
-  		 p10n.add_page_line("normal-title", index, s);
-  		 return;
-  	     }
-  	     // List - level2+
-	     //   locate under previous list
-  	     if ( s.match(/^\s+\*/) ) {
-  		 p10n.add_page_line("normal", index, s);
-  		 return;
-  	     }
-	     // Discussion Citations
- 	     if ( s.match(/^\>/) ) {
-		 s = s.replace(/^\>+/, "");
- 		 p10n.add_page_line("quoted", index, s);
- 		 return;
-	     }
-	     // Inline Image (macro)
- 	     if ( s.match(/^\[\[Image\((.*)\)\]\]/) ) {
- 		 p10n.add_page_line("picture", index, RegExp.$1);
- 		 return;
-	     }
- 	 });
-	 //window.console.log(p10n.dump());
-	 
 	 // show first page
 	 nvgn_btn.first();
 	 
@@ -397,10 +439,13 @@
     <div id="p10n-header" style="display:none; padding-top: 4em; margin-left:2em; font-size: xx-large; border-bottom:Solid 1px Silver;"></div>
 
     <!-- Standard Style Page -->
-    <div id="p10n-normal" style="display:none; padding-top: 1em; font-size: large;"></div>
+    <div id="p10n-normal" style="display:none; padding-top: 1em; font-size: x-large;"></div>
+
+    <!-- Code Style Page -->
+    <div id="p10n-code" style="display:none; margin-top:0.2em; padding: 1em; font-size: x-large; width:100%;"></div>
     
     <!-- Quoted-String Style Page -->
-    <div id="p10n-quoted" style="display:none; margin-top:0.2em; padding: 0.5em; border-top: Solid 0.5em Silver; border-bottom: Solid 0.5em Silver; background-color: white; color: Black; font-size: xx-large; width:100%;"></div>
+    <div id="p10n-quoted" style="display:none; margin-top:0.2em; padding: 0.5em; border-top: Solid 0.5em Silver; border-bottom: Solid 0.5em Silver; background-color: white; color: Black; font-size: xx-large;"></div>
 
     <!-- Image Style Page -->
     <div id="p10n-picture" style="display:none; padding-top: 1em; font-size: large;"></div>

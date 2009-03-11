@@ -56,7 +56,8 @@
      }
 
      this.get_page = function (i) {
-	 return this.pages[i];
+	 var p = this.pages[i];
+	 return [p[0], p[1], i+1 + "/" + this.pages_size];
      }
      
      this.dump = function () {
@@ -74,7 +75,7 @@
 	 case "quoted": //Quoted-String Style Page
 	 case "picture": //Image Style Page
 	 case "code": //Code Style Page
- 	     this.pages[this.pages_size] = [page_type, page];
+ 	     this.pages[this.pages_size] = [page_type, page ];
 	     this.pages_size = this.pages_size + 1;
 	     break;
 	 }
@@ -264,6 +265,7 @@
      
      this.show_page = function (p) {
 	 var tag = "";
+	 $("#pageid").val(p[2]);
 	 switch ( p[0] ) {
 	 case "header":
 	     var tag = '#p10n-header';
@@ -424,6 +426,7 @@
  	  <span style="border-left: Solid 1px; padding-left:5px;">
             <input type="button" value="|<" onclick="nvgn_btn.first();" />
             <input type="button" value="<" onclick="nvgn_btn.prev();" />
+    <input id="pageid" type="input" value="" size="7" style="background-color:Silver; text-align:right; " />
             <input type="button" value=">" onclick="nvgn_btn.next();" />
             <input type="button" value=">|" onclick="nvgn_btn.last();" />
           </span>

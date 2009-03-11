@@ -242,84 +242,92 @@
  //-------------------------------------------------------------- 
  var navigation_button = function () {
      
-     this.first = function() {
+     this.first = function(effect) {
 	 var p = p10n.get_first_page();
-	 this.show_page(p);
+	 this.show_page(p, effect);
      };
-     this.prev = function() {
+     this.prev = function(effect) {
 	 var p = p10n.get_prev_page();
-	 this.show_page(p);
+	 this.show_page(p, effect);
      };
-     this.next = function() {
+     this.next = function(effect) {
 	 var p = p10n.get_next_page();
-	 this.show_page(p);
+	 this.show_page(p, effect);
      };
-     this.last = function() {
+     this.last = function(effect) {
 	 var p = p10n.get_last_page();
-	 this.show_page(p);
+	 this.show_page(p, effect);
      };
-     this.redraw = function() {
+     this.redraw = function(effect) {
 	 var p = p10n.get_current_page();
-	 this.show_page(p);
+	 this.show_page(p, effect);
      };
-     
-     this.show_page = function (p) {
+
+     this.show_page = function (p, effect) {
 	 var tag = "";
 	 $("#pageid").val(p[2]);
 	 switch ( p[0] ) {
 	 case "header":
 	     var tag = '#p10n-header';
 	     $(tag).text(p[1].join("\n"));
-	     this.show_this_tag_and_hide_others(tag);
+	     if (effect) {effect = "slideDown"}
+	     this.show_this_tag_and_hide_others(tag, effect);
 	     break;
 	     
 	 case "normal":
 	     var tag = '#p10n-normal';
 	     $(tag).html("<code>" + jQuery.map(p[1], function(s) { return s.replace(/ /g, "&nbsp;"); }).join("<br \>\n") + "</code>");
-	     this.show_this_tag_and_hide_others(tag);
+	     this.show_this_tag_and_hide_others(tag, effect);
 	     break;
 
 	 case "code":
 	     var tag = '#p10n-code';
 	     $(tag).html("<pre>" + p[1].join("\n") + "</pre>");
-	     this.show_this_tag_and_hide_others(tag);
+	     this.show_this_tag_and_hide_others(tag, effect);
 	     break;
 	     
 	 case "quoted":
 	     var tag = '#p10n-quoted';
 	     $(tag).html(p[1].join("<br />\n"));
-	     this.show_this_tag_and_hide_others(tag);
+	     this.show_this_tag_and_hide_others(tag, effect);
 	     break;
 	     
 	 case "picture":
 	     var tag = '#p10n-picture';
 	     $(tag).html('<center><img src="' + settings.attachment_url + '/' + p[1] + '" /></center>');
-	     this.show_this_tag_and_hide_others(tag);
+	     this.show_this_tag_and_hide_others(tag, effect);
 	     break;
 
 	 case "iframe":
 	     var tag = '#p10n-iframe';
 	     $(tag).html('<iframe style="width: 100%; height: 100%;" src="' + settings.wiki_url + '/' + p[1] + '" />');
-	     this.show_this_tag_and_hide_others(tag);
+	     this.show_this_tag_and_hide_others(tag, effect);
 	     break;
 	 }
      };
 
-     this.show_this_tag_and_hide_others = function (tagname) {
-	 var tagnames = [
-	     '#p10n-header',
-	     '#p10n-normal',
-	     '#p10n-code',
-	     '#p10n-quoted',
-	     '#p10n-picture',
-	     '#p10n-iframe'
-	 ];
-	     
+     this.tagname_shown = "";
+     this.show_this_tag_and_hide_others = function (tagname, effect) {
+	 switch (effect) {
+	 case "fadeIn":
+	 case "slideDown":
+	     $("#screen").hide();
+	     break;
+	 }
+
+	 if ( this.tagname_shown ) {
+	     $(this.tagname_shown).hide();
+	 }
+	 this.tagname_shown = tagname;
 	 $(tagname).show();
-	 for ( var t in tagnames ) {
-	     if ( tagnames[t] != tagname ) { 
-		 $(tagnames[t]).hide();
-	     }
+
+	 switch (effect) {
+	 case "fadeIn":
+	     $("#screen").fadeIn(600);
+	     break;
+	 case "slideDown":
+	     $("#screen").slideDown(600);
+	     break;
 	 }
      }
  
@@ -391,12 +399,14 @@
      switch (e.keyCode) {
      case 10: // return key
      case 13: // enter key
-     case 32: // space key
      case 34: // page down key
      case 39: // right arrow key
      case 40: // down arrow key
      case 74: // j key
 	 nvgn_btn.next();
+	 break;
+     case 32: // space key
+	 nvgn_btn.next("fadeIn");
 	 break;
      case 33: // page up key
      case 37: // left arrow key
@@ -437,6 +447,8 @@
       </div>
     </div>
 
+    <div id="screen">
+
     <!-- Presentation Screens by page type -->
     <!-- Header Style Page -->
     <div id="p10n-header" style="display:none; padding-top: 4em; margin-left:2em; font-size: xx-large; border-bottom:Solid 1px Silver;"></div>
@@ -456,6 +468,7 @@
     <!-- IFrame Page -->
     <div id="p10n-iframe" style="display:none; padding-top: 1em; font-size: large; width:100%; height: 80%;"></div>
 
+    </div>
 
  </body>                                                                 
  </html>
